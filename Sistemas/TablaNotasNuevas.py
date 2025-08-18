@@ -55,7 +55,4 @@ def New_Notes():
             venta.get("vendedor", ""),
             fecha_legible,
         ])
-    print(data)
     return data
-
-New_Notes()

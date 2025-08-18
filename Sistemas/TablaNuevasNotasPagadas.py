@@ -36,7 +36,7 @@ def New_Payed_Notes():
 
     # Construir la lista de datos para la tabla PDF
     data = [
-        ["Nota", "Cliente", "Adeudo", "Vendedor", "Fecha de Creacion", "Fecha de Pago"]
+        ["Nota", "Cliente", "Pago", "Vendedor", "Fecha de Pago"]
     ]
 
     for venta in ventas:
@@ -47,7 +47,7 @@ def New_Payed_Notes():
                 fecha_legible = datetime.fromisoformat(venta["fecha_pago"]).strftime("%d/%m/%Y")
             except Exception:
                 fecha_legible = venta["fecha_pago"]  # Si no es ISO válido
-        adeudo_fmt = f"${venta.get('adeudo', 0):,.2f}"
+        adeudo_fmt = f"${venta.get('pago', 0):,.2f}"
         data.append([
             venta.get("nota", ""),
             venta.get("cliente", ""),
@@ -55,6 +55,5 @@ def New_Payed_Notes():
             venta.get("vendedor", ""),
             fecha_legible,
         ])
-    print(data)
     return data
 

@@ -27,27 +27,42 @@ def fetch_recent_inventory(table_name):
         print(f"Error fetching {table_name}: {e}")
         return []
 
-def generate_inventory():
-    botellas = fetch_recent_inventory("botellas")
 
-    # Construir ruta segura
-    inventario_path = os.path.join(os.getcwd(), "Inventarios", "inventario.csv")
+def Save_Inventory(botellas, barriles):
+    # Construir ruta segura dentro del directorio de trabajo
+    inventario_path = os.path.join(os.getcwd(), "Tablas", "inventario.csv")
     os.makedirs(os.path.dirname(inventario_path), exist_ok=True)
 
     # Verificar si el archivo existe y elegir modo
     file_exists = os.path.exists(inventario_path)
     mode = "a" if file_exists else "w"
 
-    # Abrir y escribir
+    # Fecha de registro
+    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+
+    registros = []
+
+    # Crear diccionario de botellas {nombre: cantidad}
+    botellas_dict = {item.get("nombre", ""): item.get("cantidad", 0) for item in botellas}
+
+    # Recorremos los barriles y armamos la fila con ambos datos
+    for item in barriles:
+        estilo = item.get("nombre", "")
+        cantidad_barriles = item.get("cantidad", 0)
+        cantidad_botellas = botellas_dict.get(estilo, 0)
+
+        registros.append({
+            "fecha": fecha_hoy,
+            "nombre": estilo,
+            "barril": cantidad_barriles,
+            "botella": cantidad_botellas
+        })
+
+    # Definir columnas fijas
+    fieldnames = ["fecha", "nombre", "barril", "botella"]
+
+    # Guardar en CSV
     with open(inventario_path, mode, newline="", encoding="utf-8") as nf:
-        # Agregar la columna fecha a cada registro
-        fecha_hoy = datetime.now().strftime("%Y-%m-%d")
-        for item in botellas:
-            item["fecha"] = fecha_hoy
-
-        # Asegurar que fecha sea la primera columna
-        fieldnames = ["fecha"] + [col for col in botellas[0].keys() if col != "fecha"]
-
         writer = csv.DictWriter(nf, fieldnames=fieldnames)
 
         # Si el archivo no existía, escribimos encabezado
@@ -55,4 +70,30 @@ def generate_inventory():
             writer.writeheader()
 
         # Escribir los datos
-        writer.writerows(botellas)
+        writer.writerows(registros)
+
+def Stock_tables():
+    botellas = fetch_recent_inventory("botellas")
+    barriles = fetch_recent_inventory("barriles")
+
+    data = [
+        ["Estilo", "Botellas","Salidas Botellas", "Barriles", "Salidas Barriles"]
+    ]
+
+    # Convertimos botellas a diccionario {nombre: cantidad}
+    botellas_dict = {item.get("nombre", ""): item.get("cantidad", 0) for item in botellas}
+
+    # Recorremos los barriles y agregamos la fila con ambos datos
+    for item in barriles:
+        estilo = item.get("nombre", "")
+        cantidad_barriles = item.get("cantidad", 0)
+        cantidad_botellas = botellas_dict.get(estilo, 0)
+
+        data.append([estilo, cantidad_botellas, cantidad_barriles])
+
+    return data
+
+botellas = fetch_recent_inventory("botellas")
+barriles = fetch_recent_inventory("barriles")
+
+Save_Inventory(botellas, barriles)
