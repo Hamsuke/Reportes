@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Spacer, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib import colors
@@ -18,7 +19,7 @@ def crear_pdf_con_tabla(nombre_archivo, data1, data2, data3, data4):
     estilos = getSampleStyleSheet()
 
     # Títulos de cada tabla
-    titulos = ["Notas Nuevas", "Notas Pagadas", "Notas Pendientes", "Stock"]
+    titulos = ["Notas Nuevas", "Notas Pagadas", "Stock", "Notas Pendientes"]
 
     # Crear tablas con sus títulos
     tablas = [Table(data1), Table(data2), Table(data3), Table(data4)]
@@ -42,10 +43,12 @@ def crear_pdf_con_tabla(nombre_archivo, data1, data2, data3, data4):
     doc.build(elementos)
 
 # Crear el PDF final
+fecha_hoy = datetime.now().strftime("%Y-%m-%d")
+Nombre_Archivo = "Reportes/Reporte " + fecha_hoy
 crear_pdf_con_tabla(
-    "Test_Table",
+    Nombre_Archivo,
     New_Notes(),
     New_Payed_Notes(),
-    Pending_Notes(),
     Stock_tables(),
+    Pending_Notes(),
 )

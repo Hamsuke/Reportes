@@ -47,7 +47,7 @@ def New_Notes():
                 fecha_legible = datetime.fromisoformat(venta["fecha_creacion"]).strftime("%d/%m/%Y")
             except Exception:
                 fecha_legible = venta["fecha_creacion"]  # Si no es ISO válido
-        adeudo_fmt = f"${venta.get('adeudo', 0):,.2f}"
+        adeudo_fmt = f"${venta.get('costo', 0):,.2f}"
         data.append([
             venta.get("nota", ""),
             venta.get("cliente", ""),

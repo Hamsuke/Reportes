@@ -38,7 +38,7 @@ def New_Payed_Notes():
     data = [
         ["Nota", "Cliente", "Pago", "Vendedor", "Fecha de Pago"]
     ]
-
+    tmp = 0
     for venta in ventas:
         # Formatear fecha y cantidades
         fecha_legible = ""
@@ -46,7 +46,7 @@ def New_Payed_Notes():
             try:
                 fecha_legible = datetime.fromisoformat(venta["fecha_pago"]).strftime("%d/%m/%Y")
             except Exception:
-                fecha_legible = venta["fecha_pago"]  # Si no es ISO válido
+                fecha_legible = venta["fecha_pago"]
         adeudo_fmt = f"${venta.get('pago', 0):,.2f}"
         data.append([
             venta.get("nota", ""),
@@ -55,5 +55,7 @@ def New_Payed_Notes():
             venta.get("vendedor", ""),
             fecha_legible,
         ])
+        tmp += int(venta.get("pago", 0))
+        total = f"${tmp:,.2f}"
+    data.append(["", "total", total, "", ""])
     return data
-
