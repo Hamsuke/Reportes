@@ -1,7 +1,7 @@
 import os
 import csv
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from supabase import create_client
 from supabase.lib.client_options import ClientOptions
 
@@ -14,6 +14,20 @@ if not url or not key:
 
 # Conexión a Supabase
 supabase = create_client(url, key, options=ClientOptions(schema="barriochico"))
+
+date_one_week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+
+#Funcion que pide los numeros de las notas nuevas
+def fetch_table_data_last_week(table_name):
+    try:
+        result = supabase.table(table_name).select("*").gte("fecha_creacion", date_one_week_ago).execute()
+        if not result.data:
+            print(f"No data returned for table {table_name}")
+            return []
+        return result.data
+    except Exception as e:
+        print(f"Error fetching {table_name}: {e}")
+        return []
 
 # Función para obtener inventario
 def fetch_recent_inventory(table_name):
@@ -70,55 +84,93 @@ def Save_Inventory(botellas, barriles):
         # Escribir los datos
         writer.writerows(registros)
 
+def fetch_note(producto,numero_nota):
+    try:
+        result = supabase.table(producto).select("*").eq("nota", numero_nota).execute()
+        if not result.data:
+            print(f"No data returned for table {producto}")
+            return []
+        return result.data
+    except Exception as e:
+        print(f"Error fetching {producto}: {e}")
+        return []
+
 def Stock_tables():
+    total_salidas_barril = 0
+    total_salidas_botellas = 0
     botellas = fetch_recent_inventory("botellas")
     barriles = fetch_recent_inventory("barriles")
+    #Solicitamos las notas de la semana
+    notas = fetch_table_data_last_week("ventas")
+    ListaBotellas = []
+    ListaBarriles = []
     Save_Inventory(botellas, barriles)
-    Old_Stock = Access_Old_Inventory()
 
-    data = [
-        ["Estilo", "Botellas","Salidas Botellas", "Barriles", "Salidas Barriles"]
-    ]
+    for linea in botellas:
+        nbotellas = linea.get("nombre", "")
+        #Creamos la lista de estilos basandonos en todos los registrados
+        ListaBotellas.append([nbotellas, 0])
 
-    # Convertimos botellas a diccionario {nombre: cantidad}
-    botellas_dict = {item.get("nombre", ""): item.get("cantidad", 0) for item in botellas}
+    #Revisamos las ventas segun el numero de nota
+    for nota in notas:
+        num_nota = nota.get("nota", "")
+        #Pedimos las ventas de botellas vinculadas a la nota
+        botellas_nota = fetch_note("salidasbotella", num_nota)
+        #Si la respuesta es afirmativa procedemos a añadirlas a la tabla de salidas
+        if botellas_nota:
+            for estilo in enumerate(botellas_nota):
+                for i, entrada in enumerate(ListaBotellas):
+                    if entrada[0] == estilo[1]['nombre']:
+                        ListaBotellas[i][1] += estilo[1]["cantidad"]
+                        total_salidas_botellas += estilo[1]["cantidad"]
 
-    # Recorremos los barriles y agregamos la fila con ambos datos
-    total_botellas = 0
-    total_barriles = 0
-    for item in barriles:
-        estilo = item.get("nombre", "")
-        cantidad_barriles = item.get("cantidad", 0)
-        cantidad_botellas = botellas_dict.get(estilo, 0)
+    for linea in barriles:
+        nbarriles = linea.get("nombre", "")
+        #Creamos la lista de estilos basandonos en todos los registrados
+        ListaBarriles.append([nbarriles, 0])
 
-        old_record = next((row for row in Old_Stock if row[0] == estilo), None)
+    #Revisamos las ventas segun el numero de nota
+    for nota in notas:
+        num_nota = nota.get("nota", "")
+        #Pedimos las ventas de botellas vinculadas a la nota
+        barriles_nota = fetch_note("salidasbarril", num_nota)
+        #Si la respuesta es afirmativa procedemos a añadirlas a la tabla de salidas
+        if barriles_nota:
+            for estilo in enumerate(barriles_nota):
+                for i, entrada in enumerate(ListaBarriles):
+                    if entrada[0] == estilo[1]['nombre']:
+                        ListaBarriles[i][1] += estilo[1]["cantidad"]
+                        total_salidas_barril += estilo[1]["cantidad"]
+                        print("Espera")
 
-        if old_record:
-            old_barriles = int(old_record[1])
-            old_botellas = int(old_record[2])
-            salidas_botellas = old_botellas - cantidad_botellas
-            salidas_barriles = old_barriles - cantidad_barriles
-            if salidas_barriles > 0 and salidas_botellas > 0:
-                total_botellas += salidas_botellas
-                total_barriles += salidas_barriles
-        else:
-            salidas_botellas = 0
-            salidas_barriles = 0
+    # Convertir estilo_inv a list[str]
+    estilo_inv = [str(linea[0]) for linea in ListaBotellas]
 
+    # Convertir botellas_inv a list[str]
+    botellas_inv = [str(linea.get("cantidad", "")) for linea in botellas]
+
+    # Convertir salidas_botellas a list[str]
+    salidas_botellas = [str(linea[1]) for linea in ListaBotellas]
+
+    # Convertir barriles_inv a list[str]
+    barriles_inv = [str(linea.get("cantidad", "")) for linea in barriles]
+
+    # Convertir salidas_barriles a list[str]
+    salidas_barriles = [str(linea[1]) for linea in ListaBarriles]
+
+    data = [["Estilo", "Botellas", "Salidas Botellas", "Barriles", "Salidas Barriles"],]
+
+    for i in range(len(estilo_inv)):
         data.append([
-            estilo,
-            cantidad_botellas,
-            salidas_botellas,
-            cantidad_barriles,
-            salidas_barriles
+            estilo_inv[i],
+            botellas_inv[i],
+            salidas_botellas[i],
+            barriles_inv[i],
+            salidas_barriles[i]
         ])
-    data.append(["", "Total", total_botellas, "Total", total_barriles])
+
+    data.append(["", "Total:", total_salidas_botellas, "Total:", total_salidas_barril])
+
     return data
 
-def Access_Old_Inventory():
-    date_one_week_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    file_name = "Tablas/Inventario " + date_one_week_ago + ".csv"
-    with open(file_name, "r", newline="", encoding="utf-8") as nf:
-        readed_file = csv.reader(nf)
-        next(readed_file, None)  # Saltar encabezado
-        return list(readed_file)
+Stock_tables()

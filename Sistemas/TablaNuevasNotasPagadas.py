@@ -39,6 +39,7 @@ def New_Payed_Notes():
         ["Nota", "Cliente", "Pago", "Vendedor", "Fecha de Pago"]
     ]
     tmp = 0
+    total1 = 0
     for venta in ventas:
         # Formatear fecha y cantidades
         fecha_legible = ""
@@ -56,6 +57,6 @@ def New_Payed_Notes():
             fecha_legible,
         ])
         tmp += int(venta.get("pago", 0))
-        total = f"${tmp:,.2f}"
-    data.append(["", "total", total, "", ""])
+        total1 = f"${tmp:,.2f}"
+    data.append(["", "total", total1, "", ""])
     return data

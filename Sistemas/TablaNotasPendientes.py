@@ -22,8 +22,9 @@ supabase = create_client(
 
 
 def fetch_Pending_Notes(table_name):
+    call = False
     try:
-        result = supabase.table(table_name).select("*").gte("estado", False).execute()
+        result = supabase.table(table_name).select("*").eq("estado", call).execute()
         if not result.data:
             print(f"No data returned for table {table_name}")
             return []
@@ -60,13 +61,12 @@ def Pending_Notes():
 
         adeudo_fmt = f"${nota.get('costo', 0):,.2f}"
         pago_fmt = f"${nota.get('pago', 0):,.2f}"
-
         data.append([
             nota.get("nota", ""),
             nota.get("cliente", ""),
             pago_fmt,
             adeudo_fmt,
-            nota.get("vendedor", ""),
+        nota.get("vendedor", ""),
             fecha_creacion_legible,
             fecha_pago_legible
         ])
